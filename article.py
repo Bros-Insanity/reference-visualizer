@@ -2,10 +2,18 @@ import requests
 import time
 import random
 from pyvis.network import Network
+import os
+
+import tkinter as tk
+from tkinter import filedialog as fd
+from tkinter import ttk
+
+import webbrowser
 
 HEADERS = {"User-Agent": "CitationGraphBot/1.0"}
 OPENALEX_API = "https://api.openalex.org/works/"
 MAX_CITED_BY = 20  # Limite de citations inverses
+TESTS = False
 
 
 def resolve_id(identifier):
@@ -113,20 +121,70 @@ def build_graph(starting_dois, depth=2, delay=0.2,limit=-1, include_cited_by=Tru
     recurse(starting_dois, 1)
     return net
 
-# === ARTICLES DE DÉPART ===
-starting_dois = [
-    #"10.1007/3-540-61794-9_52",
-    #"10.3906/elk-1909-14",
-    #"10.1016/j.eswa.2021.115363",
-    # "10.1007/s10287-007-0066-8",
-    # "10.1016/S0377-2217(00)00052-7",
-    # "10.1007/s10951-009-0153-5",
-    # "10.1016/j.techfore.2024.123687",
-    # "10.1016/j.sbspro.2011.05.087",
-     #"10.1007/3-540-61794-9_49",
-    "10.1609/socs.v4i1.18291"
-]
+def parse_selected(articles):
+	return articles.split(',')
 
-# === LANCEMENT ===
-graph = build_graph(starting_dois, depth=1, limit=4000,delay=0 , include_cited_by=False)
-graph.write_html("citation_graph_colored.html")
+def start_search():
+	t = time.time()
+	filename = "citation_graph_colored.html"
+	starting_dois = parse_selected(input_text.get())
+	depth = depth_text.get()
+	limit = limit_text.get()
+	graph = build_graph(starting_dois, depth=depth, limit=limit, delay=0, include_cited_by=False)
+	graph.write_html(filename)
+
+	print(f'Temps total : {(time.time()-t):.2f} secondes')
+	# ouverture dans le navigateur --- ne marche que si un navigateur est sélectionné comme moyen d'ouverture par défaut pour les fichiers html
+	url = "file://" + os.path.realpath(filename)
+	webbrowser.open(url, new=2)
+
+# TESTS
+if TESTS:
+	# === ARTICLES DE DÉPART ===
+	starting_dois = [
+		#"10.1007/3-540-61794-9_52",
+		#"10.3906/elk-1909-14",
+		#"10.1016/j.eswa.2021.115363",
+		# "10.1007/s10287-007-0066-8",
+		# "10.1016/S0377-2217(00)00052-7",
+		# "10.1007/s10951-009-0153-5",
+		# "10.1016/j.techfore.2024.123687",
+		# "10.1016/j.sbspro.2011.05.087",
+		 #"10.1007/3-540-61794-9_49",
+		"10.1609/socs.v4i1.18291"
+	]
+
+	# === LANCEMENT ===
+	graph = build_graph(starting_dois, depth=1, limit=4000, delay=0, include_cited_by=False)
+	graph.write_html("citation_graph_colored.html")
+
+# PROD
+else:
+	root = tk.Tk()
+	root.geometry("800x600")
+
+	input_label = ttk.Label(root, text="Article(s) de départ :")
+	input_text = tk.StringVar()
+	input_textfield = tk.Entry(root, width=80, textvariable=input_text)
+
+	depth_label = ttk.Label(root, text="Profondeur de recherche :")
+	depth_text = tk.IntVar()
+	depth_textfield = tk.Entry(root, width=80, textvariable=depth_text)
+
+	limit_label = ttk.Label(root, text="Limite d'articles recherchés :")
+	limit_text = tk.IntVar()
+	limit_textfield = tk.Entry(root, width=80, textvariable=limit_text)
+
+	start_button = ttk.Button(root, text="Démarrer", command=start_search)
+	close_button = ttk.Button(root, text="Fermer", command=root.destroy)
+
+	input_label.grid(row=1, column=0, pady=5)
+	input_textfield.grid(row=1, column=1, pady=5)
+	depth_label.grid(row=2, column=0, pady=5)
+	depth_textfield.grid(row=2, column=1, pady=5)
+	limit_label.grid(row=3, column=0, pady=5)
+	limit_textfield.grid(row=3, column=1, pady=5)
+	start_button.grid(row=4, column=0, columnspan=1, pady=10)
+	close_button.grid(row=5, column=0, columnspan=1, pady=10)
+	root.mainloop()
+
